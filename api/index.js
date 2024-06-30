@@ -120,7 +120,7 @@ wss.on("connection", (connection, req) => {
           if (err) throw err;
           const { userId, username } = userData;
           connection.userId = userId;
-          connection.username = usarname;
+          connection.username = username;
         });
       }
     }
