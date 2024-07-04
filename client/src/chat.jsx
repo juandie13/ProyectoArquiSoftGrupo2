@@ -2,13 +2,16 @@ import { useContext, useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext.jsx";
+import { uniqBy } from "lodash";
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [newMessageText, setNewMessageText] = useState("");
+  const [messages, setMessages] = useState([]);
   const { username, id } = useContext(UserContext);
+
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:4040");
     setWs(ws);
@@ -25,8 +28,16 @@ export default function Chat() {
 
   function handleMessage(ev) {
     const messageData = JSON.parse(ev.data);
+    console.log({ ev, messageData });
     if ("online" in messageData) {
       showOnlinePeople(messageData.online);
+    } else if ("text" in messageData) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...messageData,
+        },
+      ]);
     }
   }
 
@@ -34,16 +45,26 @@ export default function Chat() {
     ev.preventDefault();
     ws.send(
       JSON.stringify({
-        message: {
-          recipient: selectedUserId,
-          text: newMessageText,
-        },
+        recipient: selectedUserId,
+        text: newMessageText,
       })
     );
+    setNewMessageText("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: newMessageText,
+        sender: id,
+        recipient: selectedUserId,
+        id: Date.now(),
+      },
+    ]);
   }
 
   const onlinePeopleExclOurUser = { ...onlinePeople };
   delete onlinePeopleExclOurUser[id];
+
+  const messagesWithoutDupes = uniqBy(messages, "id");
 
   return (
     <div className="flex h-screen">
@@ -75,6 +96,30 @@ export default function Chat() {
               <div className="text-gray-700">
                 &larr; Elija a un usuario de la izquierda
               </div>
+            </div>
+          )}
+          {!!selectedUserId && (
+            <div className=" overflow-y-scroll ">
+              {messagesWithoutDupes.map((message) => (
+                <div
+                  className={message.sender === id ? "text-right" : "text-left"}
+                >
+                  <div
+                    className={
+                      " text-left inline-block p-2 my-2 rounded-md text-sm " +
+                      (message.sender === id
+                        ? "bg-blue-500 text-white"
+                        : "bg-white text-gray-500 ")
+                    }
+                  >
+                    sender:{message.sender}
+                    <br />
+                    my id:{id}
+                    <br />
+                    {message.text}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
