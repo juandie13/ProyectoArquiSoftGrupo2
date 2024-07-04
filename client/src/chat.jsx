@@ -7,6 +7,7 @@ export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [newMessageText, setNewMessageText] = useState("");
   const { username, id } = useContext(UserContext);
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:4040");
@@ -27,6 +28,18 @@ export default function Chat() {
     if ("online" in messageData) {
       showOnlinePeople(messageData.online);
     }
+  }
+
+  function sendMessage(ev) {
+    ev.preventDefault();
+    ws.send(
+      JSON.stringify({
+        message: {
+          recipient: selectedUserId,
+          text: newMessageText,
+        },
+      })
+    );
   }
 
   const onlinePeopleExclOurUser = { ...onlinePeople };
@@ -59,33 +72,42 @@ export default function Chat() {
         <div className="flex-grow">
           {!selectedUserId && (
             <div className="flex h-full flex-grow items-center justify-center">
-              <div className="text-gray-700">&larr; Elija a un usuario de la izquierda</div>
+              <div className="text-gray-700">
+                &larr; Elija a un usuario de la izquierda
+              </div>
             </div>
           )}
         </div>
-        <div className="flex gap-2 mx-2">
-          <input
-            type="text"
-            placeholder="Escriba su mensaje aquí"
-            className="bg-white flex-grow border rounded-sm p-2"
-          ></input>
-          <button className="bg-blue-500 p-2 rounded-sm text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-6"
+        {!!selectedUserId && (
+          <form className="flex gap-2" onSubmit={sendMessage}>
+            <input
+              type="text"
+              value={newMessageText}
+              onChange={(ev) => setNewMessageText(ev.target.value)}
+              placeholder="Escriba su mensaje aquí"
+              className="bg-white flex-grow border rounded-sm p-2"
+            ></input>
+            <button
+              type="submit"
+              className="bg-blue-500 p-2 rounded-sm text-white"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-              />
-            </svg>
-          </button>
-        </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="size-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+                />
+              </svg>
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
