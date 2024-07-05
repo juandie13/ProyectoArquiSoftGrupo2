@@ -106,6 +106,10 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.post("/logout", (req, res) => {
+  res.cookie("token", "", { sameSite: "none", secure: true }).json("ok");
+});
+
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -137,7 +141,9 @@ app.post("/register", async (req, res) => {
 const server = app.listen(4040);
 
 const wss = new ws.WebSocketServer({ server });
+
 wss.on("connection", (connection, req) => {
+
   function notifyAboutOnlinePeople() {
     [...wss.clients].forEach((client) => {
       client.send(
@@ -157,6 +163,7 @@ wss.on("connection", (connection, req) => {
     connection.ping();
     connection.deathTimer = setTimeout(() => {
       connection.isAlive = false;
+      clearInterval()
       connection.terminate();
       notifyAboutOnlinePeople();
       console.log("death");
@@ -173,7 +180,7 @@ wss.on("connection", (connection, req) => {
     const tokenCookieString = cookies
       .split(";")
       .find((str) => str.startsWith("token"));
-    console.log(tokenCookieString);
+    //console.log(tokenCookieString);
     if (tokenCookieString) {
       const token = tokenCookieString.split("=")[1];
       if (token) {
@@ -214,4 +221,3 @@ wss.on("connection", (connection, req) => {
   // notificar a todos cuando alguien se conecte
   notifyAboutOnlinePeople();
 });
-
