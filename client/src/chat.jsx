@@ -46,12 +46,14 @@ export default function Chat() {
     if ("online" in messageData) {
       showOnlinePeople(messageData.online);
     } else if ("text" in messageData) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...messageData,
-        },
-      ]);
+      if (messageData.sender === selectedUserId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...messageData,
+          },
+        ]);
+      }
     }
   }
 
@@ -63,24 +65,42 @@ export default function Chat() {
     });
   }
 
-  function sendMessage(ev) {
-    ev.preventDefault();
+  function sendMessage(ev, file = null) {
+    if (ev) ev.preventDefault();
     ws.send(
       JSON.stringify({
         recipient: selectedUserId,
         text: newMessageText,
+        file,
       })
     );
-    setNewMessageText("");
-    setMessages((prev) => [
-      ...prev,
-      {
-        text: newMessageText,
-        sender: id,
-        recipient: selectedUserId,
-        _id: Date.now(),
-      },
-    ]);
+    if (file) {
+      axios.get("/messages/" + selectedUserId).then((res) => {
+        setMessages(res.data);
+      });
+    } else {
+      setNewMessageText("");
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: newMessageText,
+          sender: id,
+          recipient: selectedUserId,
+          _id: Date.now(),
+        },
+      ]);
+    }
+  }
+
+  function sendFile(ev) {
+    const reader = new FileReader();
+    reader.readAsDataURL(ev.target.files[0]);
+    reader.onload = () => {
+      sendMessage(null, {
+        name: ev.target.files[0].name,
+        data: reader.result,
+      });
+    };
   }
 
   useEffect(() => {
@@ -183,6 +203,33 @@ export default function Chat() {
                         }
                       >
                         {message.text}
+                        {message.file && (
+                          <div className="">
+                            <a
+                              target="_blank"
+                              className="flex items-center gap-1 border-b"
+                              href={
+                                axios.defaults.baseURL +
+                                "/uploads/" +
+                                message.file
+                              }
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-4 h-4"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18.97 3.659a2.25 2.25 0 00-3.182 0l-10.94 10.94a3.75 3.75 0 105.304 5.303l7.693-7.693a.75.75 0 011.06 1.06l-7.693 7.693a5.25 5.25 0 11-7.424-7.424l10.939-10.94a3.75 3.75 0 115.303 5.304L9.097 18.835l-.008.008-.007.007-.002.002-.003.002A2.25 2.25 0 015.91 15.66l7.81-7.81a.75.75 0 011.061 1.06l-7.81 7.81a.75.75 0 001.054 1.068L18.97 6.84a2.25 2.25 0 000-3.182z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              {message.file}
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -201,6 +248,23 @@ export default function Chat() {
               placeholder="Escriba su mensaje aquí"
               className="bg-white flex-grow border rounded-sm p-2"
             ></input>
+            <label className="bg-gray-200 p-2 text-black cursor-pointer rounded-sm border border-gray-200">
+              <input type="file" className="hidden" onChange={sendFile} />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="size-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"
+                />
+              </svg>
+            </label>
             <button
               type="submit"
               className="bg-blue-500 p-2 rounded-sm text-white"
