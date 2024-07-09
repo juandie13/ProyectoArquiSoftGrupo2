@@ -1,6 +1,9 @@
 import { useContext, useState } from "react";
 import axios from "axios";
 import { UserContext } from "./UserContext.jsx";
+import * as v from 'valibot';
+
+const EmailSchema = v.pipe(v.string(), v.email())
 
 export default function RegisterAndLoginForm() {
   const [username, setUsername] = useState("");
@@ -10,6 +13,14 @@ export default function RegisterAndLoginForm() {
   async function handleSubmit(ev) {
     ev.preventDefault();
     const url = isLoginOrRegister === "register" ? "register" : "login";
+
+    const result = v.safeParse(EmailSchema, username)
+
+    if (!result.success) {
+      alert("Email invalido")
+      return
+    }
+
     const { data } = await axios.post(url, { username, password });
     setLoggedInUsername(username);
     setId(data.id);
